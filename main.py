@@ -17,6 +17,7 @@ def home():
 def image():
     return "Main Image Loadout"
 
+# TODO: Validate things
 @app.post("/grid")
 def grid(points):
     """
@@ -53,4 +54,4 @@ def grid(points):
         color = mpl.colors.to_hex(color)
         geo_json["color"] = color
 
-    return grid
+    return "sex", grid
