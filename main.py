@@ -12,8 +12,6 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 
 origins = [
-    "http://localhost.tiangolo.com",
-    "https://localhost.tiangolo.com",
     "http://localhost",
     "http://localhost:8080",
 ]
@@ -139,6 +137,12 @@ def grid_plot(points: list):
 
         m.add_child(gj)
 
-    m.save("test.html")
+    import io
+    from PIL import Image
 
-    return FileResponse('test.html', media_type='application/octet-stream', filename='test.html')
+    img_data = m._to_png(5)
+    img = Image.open(io.BytesIO(img_data))
+    img.save('image.png')
+    # m.save("test.html")
+
+    return FileResponse('image.png', media_type='application/octet-stream', filename='image.png')
