@@ -180,8 +180,6 @@ def grid_plot(points: list):
 
         m.add_child(gj)
 
-
-
     m.save("test.html")
 
     return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
