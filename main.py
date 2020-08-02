@@ -8,7 +8,8 @@ from utils import *
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-
+# import io
+# from PIL import Image
 app = FastAPI()
 
 origins = [
@@ -77,10 +78,45 @@ def grid(points: list):
     return grid
 
 
-@app.post("/items/")
-async def create_item(item: list):
-    print(item)
-    return item
+
+@app.post("/line/")
+def rect_from_line(data: list):
+    (lat1, lon1), (lat2, lon2), width = data
+    width *= 5
+    DEGREE = 90
+    rectangle = [
+        displace(lat1, lon1, DEGREE, width*1.25),
+        displace(lat2, lon2, DEGREE, width),
+        displace(lat2, lon2, -DEGREE, width),
+        displace(lat1, lon1, -DEGREE, width*1.25)
+    ]
+    return rectangle
+
+@app.post("/line/plot")
+def rect_from_line(data: list):
+    """
+    [
+            [29.961542, 76.823127],
+            [32.961542, 76.823127],
+            100
+    ]
+    """
+    (lat1, lon1), (lat2, lon2), width = data
+    width *= 5
+    DEGREE = 90
+    rectangle = [
+        displace(lat1, lon1, DEGREE, width*1.25),
+        displace(lat2, lon2, DEGREE, width),
+        displace(lat2, lon2, -DEGREE, width),
+        displace(lat1, lon1, -DEGREE, width*1.25)
+    ]
+    m = folium.Map(zoom_start=5, location=[lat1, lon1],  tiles="CartoDB dark_matter")
+    rectangle += [rectangle[0]]
+    folium.PolyLine(rectangle).add_to(m)
+
+    m.save("test.html")
+
+    return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
 
 
 @app.post("/grid/plot")
@@ -137,8 +173,7 @@ def grid_plot(points: list):
 
         m.add_child(gj)
 
-    import io
-    from PIL import Image
+
 
     img_data = m._to_png(5)
     img = Image.open(io.BytesIO(img_data))
