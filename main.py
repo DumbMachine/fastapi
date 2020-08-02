@@ -1,15 +1,14 @@
-import ast
 import folium
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+from temp import *
 from utils import *
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-# import io
-# from PIL import Image
+
 app = FastAPI()
 
 origins = [
@@ -65,11 +64,11 @@ def grid(points: list):
     lower_left = bbox[0]
     upper_right = bbox[2]
     grid = get_geojson_grid(upper_right, lower_left, n=10)
-    grid = all_grid(grid, centers)
+    new_grid = all_grid(grid, centers)
     sem = 100
 
-    for geo_json in grid:
-        geo_json["prob_dist"] = geo_json["prob_dist"]/sem
+    for geo_json in new_grid:
+        # geo_json["prob_dist"] = geo_json["prob_dist"]/sem
         color = plt.cm.Greens(geo_json["prob_dist"])
         color = mpl.colors.to_hex(color)
         geo_json["color"] = color
@@ -106,23 +105,24 @@ def grid_plot(points: list):
     bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
     bbox += [bbox[0]]
 
+
     lower_left = bbox[0]
     upper_right = bbox[2]
     grid = get_geojson_grid(upper_right, lower_left, n=10)
-    grid = all_grid(grid, centers)
-    # sem = 100
-    m = folium.Map(zoom_start=5, location=[
-                   55, 0],  tiles="CartoDB dark_matter")
-    total = sum(list(set([geo_json["prob_dist"] for geo_json in grid])))
+    new_grid = all_grid(grid, centers)
+    sem = 100
 
-    for geo_json in grid:
-        print(geo_json["prob_dist"], "=====================")
-        geo_json["prob_dist"] = geo_json["prob_dist"]/total
+    for geo_json in new_grid:
+        # geo_json["prob_dist"] = geo_json["prob_dist"]/sem
         color = plt.cm.Greens(geo_json["prob_dist"])
         color = mpl.colors.to_hex(color)
         geo_json["color"] = color
 
-    for i, geo_json in enumerate(grid):
+    m = folium.Map(zoom_start=5, location=[
+                   55, 0],  tiles="CartoDB dark_matter")
+    # total = sum(list(set([geo_json["prob_dist"] for geo_json in grid])))
+
+    for i, geo_json in enumerate(new_grid):
         color = geo_json["color"]
 
         gj = folium.GeoJson(geo_json,
@@ -133,7 +133,7 @@ def grid_plot(points: list):
                                 'dashArray': '5, 5',
                                 'fillOpacity': 0.55,
                             })
-        popup = folium.Popup(f"{geo_json['prob_dist']}")
+        popup = folium.Popup(f"{geo_json['prob_dist']}-{color}")
         gj.add_child(popup)
         m.add_child(gj)
 
@@ -143,25 +143,30 @@ def grid_plot(points: list):
 
 
 @app.post("/line/")
-def rect_from_line(data: list, circles: list = None):
+def rect_from_line(item: dict):
     """
-    [
-        [29.961542, 76.823127],
-        [32.961542, 76.823127],
-        100
-    ], 
-    [{
-        "center": [29.961542, 76.823127],
-        "radius": 100,
-        "trust": 69
-    },
     {
-        "center": [31.961542, 86.823127],
-        "radius": 220,
-        "trust": 69
-    }]
+        "data": [
+            [29.961542, 76.823127],
+            [32.961542, 76.823127],
+            100
+        ],
+        "circle": [{
+            "center": [29.961542, 76.823127],
+            "radius": 100,
+            "trust": 69
+        },
+        {
+            "center": [31.961542, 86.823127],
+            "radius": 220,
+            "trust": 69
+        }]
+    }
     """
+    data = item.pop("data")
+    circles = item.pop("circle", None)
     (lat1, lon1), (lat2, lon2), width = data
+
     width *= 5
     DEGREE = 90
     rectangle = [
@@ -181,9 +186,9 @@ def rect_from_line(data: list, circles: list = None):
 
             x, y = circle["center"]
 
-            points.extend(PointsInCircum(x, y, circle['radius']*0.0015, n=100))
-            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.0015, n=100))
-            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.0015, n=100))
+            points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
+            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
+            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
             
             all_points.extend(points)
             all_points.extend(points1)
@@ -197,7 +202,7 @@ def rect_from_line(data: list, circles: list = None):
         max_x = max(xx)
         max_y = max(yy)
         bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
-        bbox += [bbox[0]]
+        # bbox += [bbox[0]]
 
         return bbox
 
@@ -234,7 +239,7 @@ def rect_from_line_plot(item: dict):
     
     """
     data = item.pop("data")
-    circles = item.pop("circles", None)
+    circles = item.pop("circle", [])
     
     (lat1, lon1), (lat2, lon2), width = data
     width *= 5
@@ -272,8 +277,8 @@ def rect_from_line_plot(item: dict):
         rectangle = bbox
 
     m = folium.Map(zoom_start=5, location=[lat1, lon1],  tiles="CartoDB dark_matter")
-    folium.PolyLine(rectangle).add_to(m)
-    folium.PolyLine(all_points).add_to(m)
+    folium.PolyLine(bbox).add_to(m)
+    # folium.PolyLine(all_points).add_to(m)
     m.save("test.html")
 
     return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
