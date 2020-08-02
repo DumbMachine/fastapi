@@ -177,7 +177,6 @@ def grid_plot(points: list):
                             })
         popup = folium.Popup("example popup {}".format(abs(i-15)))
         gj.add_child(popup)
-
         m.add_child(gj)
 
     m.save("test.html")
