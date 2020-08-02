@@ -343,8 +343,17 @@ def rect_from_circle(item: dict):
         max_x = max(xx)
         max_y = max(yy)
         bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
+        bbox += [bbox[0]]
 
-    return bbox
+        lower_left, upper_right = bbox[0], bbox[2]
+        grid = get_geojson_grid(upper_right, lower_left, n=10)
+        for _grid in grid:
+            _grid["prob_dist"] = random.random()
+            color = plt.cm.Greens(_grid["prob_dist"])
+            color = mpl.colors.to_hex(color)
+            _grid["color"] = color
+
+    return grid
     
 
 
