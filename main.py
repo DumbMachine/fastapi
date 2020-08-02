@@ -87,6 +87,8 @@ def grid_plot(points: list):
         center: tuple
         trust: int
         strip_trust: tuple
+
+        
     """
     # parsing the list of dicts
     # centers = ast.literal_eval(points)
@@ -108,9 +110,17 @@ def grid_plot(points: list):
     upper_right = bbox[2]
     grid = get_geojson_grid(upper_right, lower_left, n=10)
     grid = all_grid(grid, centers)
-    sem = 100
+    # sem = 100
     m = folium.Map(zoom_start=5, location=[
                    55, 0],  tiles="CartoDB dark_matter")
+    total = sum(list(set([geo_json["prob_dist"] for geo_json in grid])))
+
+    for geo_json in grid:
+        print(geo_json["prob_dist"], "=====================")
+        geo_json["prob_dist"] = geo_json["prob_dist"]/total
+        color = plt.cm.Greens(geo_json["prob_dist"])
+        color = mpl.colors.to_hex(color)
+        geo_json["color"] = color
 
     for i, geo_json in enumerate(grid):
         color = geo_json["color"]
@@ -241,10 +251,10 @@ def rect_from_line_plot(item: dict):
             points, points1, points2 = [], [], []
 
             x, y = circle["center"]
-
-            points.extend(PointsInCircum(x, y, circle['radius']*0.0015, n=100))
-            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.0015, n=100))
-            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.0015, n=100))
+    
+            points.extend(PointsInCircum(x, y, circle['radius']*0.05, n=100)) #6,092 km
+            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.05, n=100))
+            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.05, n=100))
             
             all_points.extend(points)
             all_points.extend(points1)
