@@ -85,10 +85,14 @@ def rect_from_line(data: list):
     width *= 5
     DEGREE = 90
     rectangle = [
-        displace(lat1, lon1, DEGREE, width*1.25),
-        displace(lat2, lon2, DEGREE, width),
-        displace(lat2, lon2, -DEGREE, width),
-        displace(lat1, lon1, -DEGREE, width*1.25)
+        (
+            displace(lat1, lon1, DEGREE, width*1.25),
+            displace(lat1, lon1, -DEGREE, width*1.25)
+        ),
+        (
+            displace(lat2, lon2, DEGREE, width),
+            displace(lat2, lon2, -DEGREE, width)
+        )
     ]
     return rectangle
 
@@ -105,17 +109,20 @@ def rect_from_line_plot(data: list):
     width *= 5
     DEGREE = 90
     rectangle = [
-        displace(lat1, lon1, DEGREE, width*1.25),
-        displace(lat2, lon2, DEGREE, width),
-        displace(lat2, lon2, -DEGREE, width),
-        displace(lat1, lon1, -DEGREE, width*1.25)
+        (
+            displace(lat1, lon1, DEGREE, width*1.25),
+            displace(lat1, lon1, -DEGREE, width*1.25)
+        ),
+        (
+            displace(lat2, lon2, DEGREE, width),
+            displace(lat2, lon2, -DEGREE, width)
+        )
     ]
     m = folium.Map(zoom_start=5, location=[lat1, lon1],  tiles="CartoDB dark_matter")
     rectangle += [rectangle[0]]
     folium.PolyLine(rectangle).add_to(m)
 
     m.save("test.html")
-
     return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
 
 
@@ -175,9 +182,6 @@ def grid_plot(points: list):
 
 
 
-    img_data = m._to_png(5)
-    img = Image.open(io.BytesIO(img_data))
-    img.save('image.png')
-    # m.save("test.html")
+    m.save("test.html")
 
-    return FileResponse('image.png', media_type='application/octet-stream', filename='image.png')
+    return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
