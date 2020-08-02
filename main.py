@@ -163,22 +163,20 @@ def rect_from_line(item: dict):
         }]
     }
     """
-    data = item.pop("data")
+    data = item.pop("data", None)
     circles = item.pop("circle", None)
-    (lat1, lon1), (lat2, lon2), width = data
+    rectangle = []
+    if data is not None:
+        (lat1, lon1), (lat2, lon2), width = data
 
-    width *= 5
-    DEGREE = 90
-    rectangle = [
-        (
-            displace(lat1, lon1, DEGREE, width*1.25),
-            displace(lat1, lon1, -DEGREE, width*1.25)
-        ),
-        (
-            displace(lat2, lon2, DEGREE, width),
-            displace(lat2, lon2, -DEGREE, width)
-        )
-    ]
+        width *= 5
+        DEGREE = 90
+        rectangle = [
+                displace(lat1, lon1, DEGREE, width*1.25),
+                displace(lat2, lon2, DEGREE, width),
+                displace(lat1, lon1, -DEGREE, width*1.25),
+                displace(lat2, lon2, -DEGREE, width)
+        ]
     if circles is not None: # draw the circles
         all_points = []
         for circle in circles:
@@ -238,18 +236,26 @@ def rect_from_line_plot(item: dict):
     }
     
     """
-    data = item.pop("data")
-    circles = item.pop("circle", [])
-    
-    (lat1, lon1), (lat2, lon2), width = data
-    width *= 5
-    DEGREE = 90
-    rectangle = [
-            displace(lat1, lon1, DEGREE, width*1.25),
-            displace(lat2, lon2, DEGREE, width),
-            displace(lat1, lon1, -DEGREE, width*1.25),
-            displace(lat2, lon2, -DEGREE, width)
-    ]
+    data = item.pop("data", None)
+    circles = item.pop("circle", None)
+    rectangle = []
+    (lat1, lon1), (lat2, lon2), width = (0, 0), (0, 0), 0
+
+    if data is not None:
+        (lat1, lon1), (lat2, lon2), width = data
+
+        width *= 5
+        DEGREE = 90
+        rectangle = [
+            (
+                displace(lat1, lon1, DEGREE, width*1.25),
+                displace(lat1, lon1, -DEGREE, width*1.25)
+            ),
+            (
+                displace(lat2, lon2, DEGREE, width),
+                displace(lat2, lon2, -DEGREE, width)
+            )
+        ]
     if circles is not None: # draw the circles
         all_points = []
         for circle in circles:
@@ -265,7 +271,8 @@ def rect_from_line_plot(item: dict):
             all_points.extend(points1)
             all_points.extend(points2)
 
-        rectangle += [rectangle[0]]
+        if rectangle:
+            rectangle += [rectangle[0]]
         all_points.extend(rectangle)
         xx, yy = zip(*all_points)
         min_x = min(xx)
@@ -282,3 +289,118 @@ def rect_from_line_plot(item: dict):
     m.save("test.html")
 
     return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
+
+@app.post("/circle/")
+def rect_from_circle(item: dict):
+    """
+    {
+        "data": [
+            [29.961542, 76.823127],
+            [32.961542, 76.823127],
+            100
+        ],
+        "circle": [{
+            "center": [29.961542, 76.823127],
+            "radius": 100,
+            "trust": 69
+        },
+        {
+            "center": [31.961542, 86.823127],
+            "radius": 220,
+            "trust": 69
+        }]
+    }
+    """
+    circles = item["circle"]
+    bbox = None
+    m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles="CartoDB dark_matter")
+    if circles is not None: # draw the circles
+        all_points = []
+        for circle in circles:
+            points, points1, points2 = [], [], []
+
+            x, y = circle["center"]
+
+        #     points2.extend(PointsInCircum(x, y, circle['radius']*3*0.0015, n=100))
+            points.extend(PointsInCircum(x, y, circle['radius']*1*0.0111112, n=100)) #6,092 km
+            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
+            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
+        #     points.extend(getCoordinates(x, y, circle['radius']*1, n=100)) #6,092 km
+        #     points1.extend(getCoordinates(x, y, circle['radius']*2, n=100))
+        #     points2.extend(getCoordinates(x, y, circle['radius']*3, n=100))
+
+            all_points.extend(points)
+            all_points.extend(points1)
+            all_points.extend(points2)
+
+            folium.PolyLine(points, color="green", popup=points[0]).add_to(m)
+            folium.PolyLine(points1, color="red", popup=points1[0]).add_to(m)
+            folium.PolyLine(points2, color="blue", popup=points2[0]).add_to(m)
+
+        xx, yy = zip(*all_points)
+        min_x = min(xx)
+        min_y = min(yy)
+        max_x = max(xx)
+        max_y = max(yy)
+        bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
+
+    return bbox
+    
+
+
+@app.post("/circle/plot")
+def rect_from_circle_plot(item: dict):
+    """
+    {
+        "circle": [{
+            "center": [29.961542, 76.823127],
+            "radius": 10,
+            "trust": 69
+        },
+        {
+            "center": [31.961542, 86.823127],
+            "radius": 20,
+            "trust": 69
+        }]
+    }
+    """
+    circles = item["circle"]
+    m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles="CartoDB dark_matter")
+    if circles is not None: # draw the circles
+        all_points = []
+        for circle in circles:
+            points, points1, points2 = [], [], []
+
+            x, y = circle["center"]
+
+        #     points2.extend(PointsInCircum(x, y, circle['radius']*3*0.0015, n=100))
+            points.extend(PointsInCircum(x, y, circle['radius']*1*0.0111112, n=100)) #6,092 km
+            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
+            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
+        #     points.extend(getCoordinates(x, y, circle['radius']*1, n=100)) #6,092 km
+        #     points1.extend(getCoordinates(x, y, circle['radius']*2, n=100))
+        #     points2.extend(getCoordinates(x, y, circle['radius']*3, n=100))
+
+            all_points.extend(points)
+            all_points.extend(points1)
+            all_points.extend(points2)
+
+            folium.PolyLine(points, color="green", popup=points[0]).add_to(m)
+            folium.PolyLine(points1, color="red", popup=points1[0]).add_to(m)
+            folium.PolyLine(points2, color="blue", popup=points2[0]).add_to(m)
+
+        xx, yy = zip(*all_points)
+        min_x = min(xx)
+        min_y = min(yy)
+        max_x = max(xx)
+        max_y = max(yy)
+        bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
+        bbox += [bbox[0]]
+
+        folium.PolyLine(bbox).add_to(m)
+        m.save("test.html")
+
+        return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
+
+
+    return None
