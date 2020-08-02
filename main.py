@@ -46,7 +46,6 @@ def grid(points: list):
         radius: int
         center: tuple
         trust: int
-        strip_trust: tuple
     """
     centers = points
 
@@ -76,54 +75,6 @@ def grid(points: list):
         geo_json["color"] = color
 
     return grid
-
-
-
-@app.post("/line/")
-def rect_from_line(data: list):
-    (lat1, lon1), (lat2, lon2), width = data
-    width *= 5
-    DEGREE = 90
-    rectangle = [
-        (
-            displace(lat1, lon1, DEGREE, width*1.25),
-            displace(lat1, lon1, -DEGREE, width*1.25)
-        ),
-        (
-            displace(lat2, lon2, DEGREE, width),
-            displace(lat2, lon2, -DEGREE, width)
-        )
-    ]
-    return rectangle
-
-@app.post("/line/plot")
-def rect_from_line_plot(data: list):
-    """
-    [
-            [29.961542, 76.823127],
-            [32.961542, 76.823127],
-            100
-    ]
-    """
-    (lat1, lon1), (lat2, lon2), width = data
-    width *= 5
-    DEGREE = 90
-    rectangle = [
-        (
-            displace(lat1, lon1, DEGREE, width*1.25),
-            displace(lat1, lon1, -DEGREE, width*1.25)
-        ),
-        (
-            displace(lat2, lon2, DEGREE, width),
-            displace(lat2, lon2, -DEGREE, width)
-        )
-    ]
-    m = folium.Map(zoom_start=5, location=[lat1, lon1],  tiles="CartoDB dark_matter")
-    rectangle += [rectangle[0]]
-    folium.PolyLine(rectangle).add_to(m)
-
-    m.save("test.html")
-    return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
 
 
 @app.post("/grid/plot")
@@ -162,10 +113,7 @@ def grid_plot(points: list):
                    55, 0],  tiles="CartoDB dark_matter")
 
     for i, geo_json in enumerate(grid):
-        geo_json["prob_dist"] = geo_json["prob_dist"]/sem
-        color = plt.cm.Greens(geo_json["prob_dist"])
-        color = mpl.colors.to_hex(color)
-        geo_json["color"] = color
+        color = geo_json["color"]
 
         gj = folium.GeoJson(geo_json,
                             style_function=lambda feature, color=color: {
@@ -175,10 +123,147 @@ def grid_plot(points: list):
                                 'dashArray': '5, 5',
                                 'fillOpacity': 0.55,
                             })
-        popup = folium.Popup("example popup {}".format(abs(i-15)))
+        popup = folium.Popup(f"{geo_json['prob_dist']}")
         gj.add_child(popup)
         m.add_child(gj)
 
+    m.save("test.html")
+
+    return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
+
+
+@app.post("/line/")
+def rect_from_line(data: list, circles: list = None):
+    """
+    [
+        [29.961542, 76.823127],
+        [32.961542, 76.823127],
+        100
+    ], 
+    [{
+        "center": [29.961542, 76.823127],
+        "radius": 100,
+        "trust": 69
+    },
+    {
+        "center": [31.961542, 86.823127],
+        "radius": 220,
+        "trust": 69
+    }]
+    """
+    (lat1, lon1), (lat2, lon2), width = data
+    width *= 5
+    DEGREE = 90
+    rectangle = [
+        (
+            displace(lat1, lon1, DEGREE, width*1.25),
+            displace(lat1, lon1, -DEGREE, width*1.25)
+        ),
+        (
+            displace(lat2, lon2, DEGREE, width),
+            displace(lat2, lon2, -DEGREE, width)
+        )
+    ]
+    if circles is not None: # draw the circles
+        all_points = []
+        for circle in circles:
+            points, points1, points2 = [], [], []
+
+            x, y = circle["center"]
+
+            points.extend(PointsInCircum(x, y, circle['radius']*0.0015, n=100))
+            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.0015, n=100))
+            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.0015, n=100))
+            
+            all_points.extend(points)
+            all_points.extend(points1)
+            all_points.extend(points2)
+
+        rectangle += [rectangle[0]]
+        all_points.extend(rectangle)
+        xx, yy = zip(*all_points)
+        min_x = min(xx)
+        min_y = min(yy)
+        max_x = max(xx)
+        max_y = max(yy)
+        bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
+        bbox += [bbox[0]]
+
+        return bbox
+
+
+    return rectangle
+
+
+@app.post("/line/plot")
+def rect_from_line_plot(item: dict):
+    """
+    [
+            [29.961542, 76.823127],
+            [32.961542, 76.823127],
+            100
+    ]
+        (OR)
+    {
+        "data": [
+            [29.961542, 76.823127],
+            [32.961542, 76.823127],
+            100
+        ],
+        "circles": [{
+            "center": [29.961542, 76.823127],
+            "radius": 100,
+            "trust": 69
+        },
+        {
+            "center": [31.961542, 86.823127],
+            "radius": 220,
+            "trust": 69
+        }]
+    }
+    
+    """
+    data = item.pop("data")
+    circles = item.pop("circles", None)
+    
+    (lat1, lon1), (lat2, lon2), width = data
+    width *= 5
+    DEGREE = 90
+    rectangle = [
+            displace(lat1, lon1, DEGREE, width*1.25),
+            displace(lat2, lon2, DEGREE, width),
+            displace(lat1, lon1, -DEGREE, width*1.25),
+            displace(lat2, lon2, -DEGREE, width)
+    ]
+    if circles is not None: # draw the circles
+        all_points = []
+        for circle in circles:
+            points, points1, points2 = [], [], []
+
+            x, y = circle["center"]
+
+            points.extend(PointsInCircum(x, y, circle['radius']*0.0015, n=100))
+            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.0015, n=100))
+            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.0015, n=100))
+            
+            all_points.extend(points)
+            all_points.extend(points1)
+            all_points.extend(points2)
+
+        rectangle += [rectangle[0]]
+        all_points.extend(rectangle)
+        xx, yy = zip(*all_points)
+        min_x = min(xx)
+        min_y = min(yy)
+        max_x = max(xx)
+        max_y = max(yy)
+        bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
+        bbox += [bbox[0]]
+        rectangle = bbox
+
+    m = folium.Map(zoom_start=5, location=[lat1, lon1],  tiles="CartoDB dark_matter")
+    folium.PolyLine(rectangle).add_to(m)
+    folium.PolyLine(all_points).add_to(m)
     m.save("test.html")
 
     return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
