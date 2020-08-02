@@ -397,6 +397,33 @@ def rect_from_circle_plot(item: dict):
         bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
         bbox += [bbox[0]]
 
+        lower_left, upper_right = bbox[0], bbox[2]
+        grid = get_geojson_grid(upper_right, lower_left, n=10)
+        for _grid in grid:
+            _grid["prob_dist"] = random.random()
+            color = plt.cm.Greens(_grid["prob_dist"])
+            color = mpl.colors.to_hex(color)
+            _grid["color"] = color
+
+        m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles="CartoDB dark_matter")
+
+        for i, geo_json in enumerate(grid):
+            color = geo_json["color"]
+
+            gj = folium.GeoJson(geo_json,
+                                style_function=lambda feature, color=color: {
+                                    'fillColor': color,
+                                    'color': "black",
+                                    'weight': 2,
+                                    'dashArray': '5, 5',
+                                    'fillOpacity': 0.55,
+                                })
+        #         popup = folium.Popup(f"{geo_json['prob_dist']}")
+            popup = folium.Popup(f"{i}")
+            gj.add_child(popup)
+            m.add_child(gj)
+
+
         folium.PolyLine(bbox).add_to(m)
         m.save("test.html")
 
