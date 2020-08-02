@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-def distance(origin, destination):
+def distance_(origin, destination):
     """
     Calculate the Haversine distance.
 

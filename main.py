@@ -36,8 +36,8 @@ def image():
 # TODO: Validate things
 
 
-@app.post("/grid")
-def grid(points: list):
+@app.post("/rect")
+def grid(item: dict):
     """
     POST REQUEST:
     =============
@@ -46,35 +46,39 @@ def grid(points: list):
         center: tuple
         trust: int
     """
-    centers = points
+    circles = item["circle"]
+    bbox = None
+    m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles="CartoDB dark_matter")
+    if circles is not None: # draw the circles
+        all_points = []
+        for circle in circles:
+            points, points1, points2 = [], [], []
 
-    points = []
-    for center in centers:
-        x, y = center["center"]
-        points.extend(PointsInCircum(x, y, 1.5, n=20))
+            x, y = circle["center"]
 
-    xx, yy = zip(*points)
-    min_x = min(xx)
-    min_y = min(yy)
-    max_x = max(xx)
-    max_y = max(yy)
-    bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
-    bbox += [bbox[0]]
+        #     points2.extend(PointsInCircum(x, y, circle['radius']*3*0.0015, n=100))
+            points.extend(PointsInCircum(x, y, circle['radius']*1*0.0111112, n=100)) #6,092 km
+            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
+            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
+        #     points.extend(getCoordinates(x, y, circle['radius']*1, n=100)) #6,092 km
+        #     points1.extend(getCoordinates(x, y, circle['radius']*2, n=100))
+        #     points2.extend(getCoordinates(x, y, circle['radius']*3, n=100))
 
-    lower_left = bbox[0]
-    upper_right = bbox[2]
-    grid = get_geojson_grid(upper_right, lower_left, n=10)
-    new_grid = all_grid(grid, centers)
-    sem = 100
+            all_points.extend(points)
+            all_points.extend(points1)
+            all_points.extend(points2)
 
-    for geo_json in new_grid:
-        # geo_json["prob_dist"] = geo_json["prob_dist"]/sem
-        color = plt.cm.Greens(geo_json["prob_dist"])
-        color = mpl.colors.to_hex(color)
-        geo_json["color"] = color
+            folium.PolyLine(points, color="green", popup=points[0]).add_to(m)
+            folium.PolyLine(points1, color="red", popup=points1[0]).add_to(m)
+            folium.PolyLine(points2, color="blue", popup=points2[0]).add_to(m)
 
-    return grid
-
+        xx, yy = zip(*all_points)
+        min_x = min(xx)
+        min_y = min(yy)
+        max_x = max(xx)
+        max_y = max(yy)
+        bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
+        return bbox
 
 @app.post("/grid/plot")
 def grid_plot(points: list):
@@ -90,10 +94,10 @@ def grid_plot(points: list):
         
     """
     # parsing the list of dicts
-    # centers = ast.literal_eval(points)
-    centers = points
+    # circles = ast.literal_eval(points)
+    circles = points
     points = []
-    for center in centers:
+    for center in circles:
         x, y = center["center"]
         points.extend(PointsInCircum(x, y, 1.5, n=20))
 
@@ -109,18 +113,9 @@ def grid_plot(points: list):
     lower_left = bbox[0]
     upper_right = bbox[2]
     grid = get_geojson_grid(upper_right, lower_left, n=10)
-    new_grid = all_grid(grid, centers)
-    sem = 100
+    new_grid = all_grid(grid, circles)
 
-    for geo_json in new_grid:
-        # geo_json["prob_dist"] = geo_json["prob_dist"]/sem
-        color = plt.cm.Greens(geo_json["prob_dist"])
-        color = mpl.colors.to_hex(color)
-        geo_json["color"] = color
-
-    m = folium.Map(zoom_start=5, location=[
-                   55, 0],  tiles="CartoDB dark_matter")
-    # total = sum(list(set([geo_json["prob_dist"] for geo_json in grid])))
+    m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles="CartoDB dark_matter")
 
     for i, geo_json in enumerate(new_grid):
         color = geo_json["color"]
@@ -373,22 +368,23 @@ def rect_from_circle_plot(item: dict):
         }]
     }
     """
+    N = 30
     circles = item["circle"]
     m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles="CartoDB dark_matter")
     if circles is not None: # draw the circles
         all_points = []
         for circle in circles:
+            circle["rad_strips"] = []
             points, points1, points2 = [], [], []
 
             x, y = circle["center"]
 
-        #     points2.extend(PointsInCircum(x, y, circle['radius']*3*0.0015, n=100))
-            points.extend(PointsInCircum(x, y, circle['radius']*1*0.0111112, n=100)) #6,092 km
+            points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
+            circle["rad_strips"].append(cal_dist(*points[0], *circle["center"]))
             points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
+            circle["rad_strips"].append(cal_dist(*points1[0], *circle["center"]))
             points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
-        #     points.extend(getCoordinates(x, y, circle['radius']*1, n=100)) #6,092 km
-        #     points1.extend(getCoordinates(x, y, circle['radius']*2, n=100))
-        #     points2.extend(getCoordinates(x, y, circle['radius']*3, n=100))
+            circle["rad_strips"].append(cal_dist(*points2[0], *circle["center"]))
 
             all_points.extend(points)
             all_points.extend(points1)
@@ -407,16 +403,10 @@ def rect_from_circle_plot(item: dict):
         bbox += [bbox[0]]
 
         lower_left, upper_right = bbox[0], bbox[2]
-        grid = get_geojson_grid(upper_right, lower_left, n=10)
-        for _grid in grid:
-            _grid["prob_dist"] = random.random()
-            color = plt.cm.Greens(_grid["prob_dist"])
-            color = mpl.colors.to_hex(color)
-            _grid["color"] = color
+        grid = get_geojson_grid(upper_right, lower_left, n=N)
+        new_grid = all_grid(grid, circles)
 
-        m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles="CartoDB dark_matter")
-
-        for i, geo_json in enumerate(grid):
+        for i, geo_json in enumerate(new_grid):
             color = geo_json["color"]
 
             gj = folium.GeoJson(geo_json,
@@ -427,11 +417,9 @@ def rect_from_circle_plot(item: dict):
                                     'dashArray': '5, 5',
                                     'fillOpacity': 0.55,
                                 })
-        #         popup = folium.Popup(f"{geo_json['prob_dist']}")
-            popup = folium.Popup(f"{i}")
+            popup = folium.Tooltip(f"{geo_json['prob_dist']}")
             gj.add_child(popup)
             m.add_child(gj)
-
 
         folium.PolyLine(bbox).add_to(m)
         m.save("test.html")
