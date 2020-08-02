@@ -93,7 +93,7 @@ def rect_from_line(data: list):
     return rectangle
 
 @app.post("/line/plot")
-def rect_from_line(data: list):
+def rect_from_line_plot(data: list):
     """
     [
             [29.961542, 76.823127],
