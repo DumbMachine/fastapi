@@ -13,7 +13,7 @@ starlette
 uvicorn
 websockets
 wrapt
-
+aiofiles
 # fastapi[all]
 fastapi
 numpy
