@@ -19,7 +19,7 @@ SATELITE = glob("satelite/*")
 DEGREE = 90
 TILE = 'Stamen Terrain'
 FILENAME = "html/file.html"
-origins = [ "http://localhost", "http://localhost:8080"]
+origins = ["http://localhost", "http://localhost:8080"]
 
 
 app.add_middleware(
@@ -29,8 +29,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.mount("/html", StaticFiles(directory="html"), name="html")
 app.mount("/satelite", StaticFiles(directory="satelite"), name="satelite")
+
 
 @app.get("/")
 def home():
@@ -64,6 +64,32 @@ def model(item: dict):
 
         }
     }
+    return response
+
+
+@app.post("/models")
+def models(item: dict):
+    """
+    Retrive information from the image processing api
+
+    Schema for dict: 
+
+        {
+            "point" : [
+                [10.171054833, 75.870382],
+                [12.171054833, 75.970382]
+            ]
+        }
+
+    """
+    response = {"query": item, "response": []}
+    for filename in SATELITE:
+        prob = 0
+        if "HIGH" in filename:
+            prob = 1
+        response["response"].append({
+            "prob": prob,
+            "image": FileResponse(filename, media_type='application/octet-stream', filename=filename)})
     return response
 
 
@@ -117,16 +143,20 @@ def rect(item: dict):
     circles = item["circles"]
     all_points = []
     if circles:
-        m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles=TILE)
+        m = folium.Map(
+            zoom_start=5, location=circles[0]["center"],  tiles=TILE)
         for circle in circles:
             circle["rad_strips"] = []
             points, points1, points2 = [], [], []
 
             x, y = circle["center"]
 
-            points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
-            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
-            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
+            points.extend(PointsInCircum(
+                x, y, circle['radius']*1*0.02, n=100))  # 6,092 km
+            points1.extend(PointsInCircum(
+                x, y, circle['radius']*2*0.02, n=100))
+            points2.extend(PointsInCircum(
+                x, y, circle['radius']*3*0.02, n=100))
 
             all_points.extend(points)
             all_points.extend(points1)
@@ -144,10 +174,10 @@ def rect(item: dict):
                 displace(lat2, lon2, -DEGREE, width*i)[::-1],
                 displace(lat2, lon2, DEGREE, width*i)[::-1]
             ]
-            rectangle+= [rectangle[0]]
+            rectangle += [rectangle[0]]
             all_points.extend([rec[::-1] for rec in rectangle])
 
-    if all_points:   
+    if all_points:
         xx, yy = zip(*all_points)
         min_x = min(xx)
         min_y = min(yy)
@@ -156,7 +186,7 @@ def rect(item: dict):
         bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
         # bbox += [bbox[0]]
         return bbox
-    
+
     return "None", "There was problem with your data"
 
 
@@ -210,7 +240,8 @@ def rect_plot(item: dict):
     circles = item["circles"]
     all_points = []
     if circles:
-        m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles=TILE)
+        m = folium.Map(
+            zoom_start=5, location=circles[0]["center"],  tiles=TILE)
         for circle in circles:
             circle["rad_strips"] = []
             points, points1, points2 = [], [], []
@@ -218,8 +249,10 @@ def rect_plot(item: dict):
             x, y = circle["center"]
 
             points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100))
-            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
-            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
+            points1.extend(PointsInCircum(
+                x, y, circle['radius']*2*0.02, n=100))
+            points2.extend(PointsInCircum(
+                x, y, circle['radius']*3*0.02, n=100))
 
             all_points.extend(points)
             all_points.extend(points1)
@@ -237,10 +270,10 @@ def rect_plot(item: dict):
                 displace(lat2, lon2, -DEGREE, width*i)[::-1],
                 displace(lat2, lon2, DEGREE, width*i)[::-1]
             ]
-            rectangle+= [rectangle[0]]
+            rectangle += [rectangle[0]]
             all_points.extend([rec[::-1] for rec in rectangle])
 
-    if all_points:   
+    if all_points:
         xx, yy = zip(*all_points)
         min_x = min(xx)
         min_y = min(yy)
@@ -248,12 +281,13 @@ def rect_plot(item: dict):
         max_y = max(yy)
         bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
         bbox += [bbox[0]]
-        
+
         folium.PolyLine(bbox).add_to(m)
         m.save(FILENAME)
         return FileResponse(FILENAME, media_type='application/octet-stream', filename=FILENAME)
-    
+
     return "None", "There was problem with your data"
+
 
 @app.post("/grid")
 def grid(item: dict):
@@ -323,19 +357,25 @@ def grid(item: dict):
     circles = item["circles"]
     all_points = []
     if circles:
-        m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles=TILE)
+        m = folium.Map(
+            zoom_start=5, location=circles[0]["center"],  tiles=TILE)
         for circle in circles:
             circle["rad_strips"] = []
             points, points1, points2 = [], [], []
 
             x, y = circle["center"]
 
-            points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
+            points.extend(PointsInCircum(
+                x, y, circle['radius']*1*0.02, n=100))  # 6,092 km
             circle["rad_strips"].append(distance_(points[0], circle["center"]))
-            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
-            circle["rad_strips"].append(distance_(points1[0], circle["center"]))
-            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
-            circle["rad_strips"].append(distance_(points2[0], circle["center"]))
+            points1.extend(PointsInCircum(
+                x, y, circle['radius']*2*0.02, n=100))
+            circle["rad_strips"].append(
+                distance_(points1[0], circle["center"]))
+            points2.extend(PointsInCircum(
+                x, y, circle['radius']*3*0.02, n=100))
+            circle["rad_strips"].append(
+                distance_(points2[0], circle["center"]))
 
             all_points.extend(points)
             all_points.extend(points1)
@@ -354,7 +394,7 @@ def grid(item: dict):
                 displace(lat2, lon2, -DEGREE, width*i)[::-1],
                 displace(lat2, lon2, DEGREE, width*i)[::-1]
             ]
-            rectangle+= [rectangle[0]]
+            rectangle += [rectangle[0]]
             coordinates = rectangle
             geo_json = {"type": "FeatureCollection",
                         "properties": {
@@ -386,10 +426,10 @@ def grid(item: dict):
             displace(lat2, lon2, -DEGREE, width),
             displace(lat2, lon2, DEGREE, width)
         ]
-        rectangle+= [rectangle[0]]
+        rectangle += [rectangle[0]]
         all_points.extend(rectangle)
 
-    if all_points:   
+    if all_points:
         xx, yy = zip(*all_points)
         min_x = min(xx)
         min_y = min(yy)
@@ -476,19 +516,25 @@ def grid_plot(item: dict):
     circles = item["circles"]
     all_points = []
     if circles:
-        m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles=TILE)
+        m = folium.Map(
+            zoom_start=5, location=circles[0]["center"],  tiles=TILE)
         for circle in circles:
             circle["rad_strips"] = []
             points, points1, points2 = [], [], []
 
             x, y = circle["center"]
 
-            points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
+            points.extend(PointsInCircum(
+                x, y, circle['radius']*1*0.02, n=100))  # 6,092 km
             circle["rad_strips"].append(distance_(points[0], circle["center"]))
-            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
-            circle["rad_strips"].append(distance_(points1[0], circle["center"]))
-            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
-            circle["rad_strips"].append(distance_(points2[0], circle["center"]))
+            points1.extend(PointsInCircum(
+                x, y, circle['radius']*2*0.02, n=100))
+            circle["rad_strips"].append(
+                distance_(points1[0], circle["center"]))
+            points2.extend(PointsInCircum(
+                x, y, circle['radius']*3*0.02, n=100))
+            circle["rad_strips"].append(
+                distance_(points2[0], circle["center"]))
 
             all_points.extend(points)
             all_points.extend(points1)
@@ -507,7 +553,7 @@ def grid_plot(item: dict):
                 displace(lat2, lon2, -DEGREE, width*i)[::-1],
                 displace(lat2, lon2, DEGREE, width*i)[::-1]
             ]
-            rectangle+= [rectangle[0]]
+            rectangle += [rectangle[0]]
             coordinates = rectangle
             geo_json = {"type": "FeatureCollection",
                         "properties": {
@@ -539,10 +585,10 @@ def grid_plot(item: dict):
             displace(lat2, lon2, -DEGREE, width),
             displace(lat2, lon2, DEGREE, width)
         ]
-        rectangle+= [rectangle[0]]
+        rectangle += [rectangle[0]]
         all_points.extend(rectangle)
 
-    if all_points:   
+    if all_points:
         xx, yy = zip(*all_points)
         min_x = min(xx)
         min_y = min(yy)
@@ -563,7 +609,7 @@ def grid_plot(item: dict):
                                 style_function=lambda feature: {
                                     'color': color,
                                     'fillColor': color,
-        #                             'fillOpacity':0.3,
+                                    #                             'fillOpacity':0.3,
                                 })
             popup = folium.Tooltip(f"{geo_json['prob']}")
             gj.add_child(popup)
@@ -573,4 +619,3 @@ def grid_plot(item: dict):
         return FileResponse(FILENAME, media_type='application/octet-stream', filename=FILENAME)
 
     return None
-
