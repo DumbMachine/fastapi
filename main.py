@@ -200,20 +200,33 @@ def grid(item: dict):
 @app.post("/grid/plot")
 def grid_plot(item: dict):
     """
-    POST REQUEST:
-    =============
-    class Center:
-        radius: int
-        center: tuple
-        trust: int
-        strip_trust: tuple
-
+        {
+            "line": [
+                [10.171054833, 75.870382],
+                [12.171054833, 75.970382], 10
+            ],
+        "circles": [{"center": [10.171054833622044, 75.87038261100483],
+        "radius": 5.251052195950642,
+        "strip": [0.5,0.2,0.1],
+        "trust": 75},
+        {"center": [10.337583, 75.420917],
+        "radius":  10.530432089900206,
+        "strip": [0.5,0.2,0.1],
+        "trust": 57},
+            {"center": [10.420933, 75.872667],
+        "radius":   4.686149805543993,
+        "strip": [0.5,0.2,0.1],
+        "trust": 25}]
+            }
         
     """
     from selenium import webdriver
     options = webdriver.ChromeOptions()
     options.binary_location = "/app/.apt/usr/bin/google-chrome-stable"
+    options.add_argument("--headless")
     driver = webdriver.Chrome(chrome_options=options)
+    driver.quit()
+    print("DRIVER WAS OPENEND")
     N = 30
     TILE = 'Stamen Terrain'
     DEGREE = 90
