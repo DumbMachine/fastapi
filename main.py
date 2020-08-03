@@ -227,7 +227,7 @@ def grid_plot(item: dict):
     print("DRIVER WAS OPENEND")
         
     """
-    N = 30
+    N = 15
     TILE = 'Stamen Terrain'
     DEGREE = 90
     line_grid = []
