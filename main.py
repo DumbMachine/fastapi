@@ -39,46 +39,96 @@ def image():
 @app.post("/rect")
 def rect(item: dict):
     """
-    POST REQUEST:
-    =============
-    class Center:
-        radius: int
-        center: tuple
-        trust: int
+    If there is no `Line` send "line": []
+    If there is no `circles` send "circles": []
+    
+        example = {
+            "line": [
+                [
+                    10.171054833,
+                    75.870382
+                ],
+                [
+                    12.171054833,
+                    75.970382
+                ],
+                10
+            ],
+            "circles": [
+                {
+                    "center": [
+                        10.171054833622044,
+                        75.87038261100483
+                    ],
+                    "radius": 5.251052195950642
+                },
+                {
+                    "center": [
+                        10.337583,
+                        75.420917
+                    ],
+                    "radius": 10.530432089900206
+                },
+                {
+                    "center": [
+                        10.420933,
+                        75.872667
+                    ],
+                    "radius": 4.686149805543993
+                }
+            ]
+        }
     """
-    circles = item["circle"]
-    bbox = None
-    m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles="CartoDB dark_matter")
-    if circles is not None: # draw the circles
-        all_points = []
+    N = 10
+    TILE = 'Stamen Terrain'
+    DEGREE = 90
+    line_grid = []
+    all_points = []
+    line = item["line"]
+    circles = item["circles"]
+    all_points = []
+    if circles:
+        m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles=TILE)
         for circle in circles:
+            circle["rad_strips"] = []
             points, points1, points2 = [], [], []
 
             x, y = circle["center"]
 
-        #     points2.extend(PointsInCircum(x, y, circle['radius']*3*0.0015, n=100))
             points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
             points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
             points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
-        #     points.extend(getCoordinates(x, y, circle['radius']*1, n=100)) #6,092 km
-        #     points1.extend(getCoordinates(x, y, circle['radius']*2, n=100))
-        #     points2.extend(getCoordinates(x, y, circle['radius']*3, n=100))
 
             all_points.extend(points)
             all_points.extend(points1)
             all_points.extend(points2)
 
-            folium.PolyLine(points, color="green", popup=points[0]).add_to(m)
-            folium.PolyLine(points1, color="red", popup=points1[0]).add_to(m)
-            folium.PolyLine(points2, color="blue", popup=points2[0]).add_to(m)
+    if line:
+        line_grid = []
+        (lat1, lon1), (lat2, lon2), width = line
+        m = folium.Map(zoom_start=5, location=line[0],  tiles=TILE)
+        for i in range(1, 4)[::-1]:
+            DEGREE = 90
+            rectangle = [
+                displace(lat1, lon1, DEGREE, width*i)[::-1],
+                displace(lat1, lon1, -DEGREE, width*i)[::-1],
+                displace(lat2, lon2, -DEGREE, width*i)[::-1],
+                displace(lat2, lon2, DEGREE, width*i)[::-1]
+            ]
+            rectangle+= [rectangle[0]]
+            all_points.extend([rec[::-1] for rec in rectangle])
 
+    if all_points:   
         xx, yy = zip(*all_points)
         min_x = min(xx)
         min_y = min(yy)
         max_x = max(xx)
         max_y = max(yy)
         bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
+        # bbox += [bbox[0]]
         return bbox
+    
+    return "None", "There was problem with your data"
 
 @app.post("/grid")
 def grid(item: dict):
