@@ -210,6 +210,10 @@ def grid_plot(item: dict):
 
         
     """
+    from selenium import webdriver
+    options = webdriver.ChromeOptions()
+    options.binary_location = "/app/.apt/usr/bin/google-chrome-stable"
+    driver = webdriver.Chrome(chrome_options=options)
     N = 30
     TILE = 'Stamen Terrain'
     DEGREE = 90
