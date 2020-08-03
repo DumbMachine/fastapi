@@ -103,7 +103,7 @@ def grid(item: dict):
         "trust": 25}]
             }
     """
-    N = 30
+    N = 15
     TILE = 'Stamen Terrain'
     DEGREE = 90
     line_grid = []
@@ -227,7 +227,7 @@ def grid_plot(item: dict):
     print("DRIVER WAS OPENEND")
         
     """
-    N = 15
+    N = 10
     TILE = 'Stamen Terrain'
     DEGREE = 90
     line_grid = []
