@@ -1,12 +1,12 @@
 import math
-import random
+import folium
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+from temp import *
 pi = math.pi
 MOD = 0.0015
-
 
 def get_geojson_grid(upper_right, lower_left, n=6):
     """Returns a grid of geojson rectangles, and computes the exposure in each section of the grid based on the vessel data.
@@ -80,19 +80,39 @@ def PointsInCircum(_x, y, r, n=100):
     ret = []
     for x in range(0, n+1):
         ret.append((
-            _x+float(math.cos(2*pi/n*x)*r),
-            y+float(math.sin(2*pi/n*x)*r)
-        ))
+                _x+float(math.cos(2*pi/n*x)*r),
+                y+float(math.sin(2*pi/n*x)*r)
+            ))
     return ret
 
+
+# def all_grid(grids, centers, rec):
+#     """
+#     Assign prob to all the grids
+#     """
+#     xx, yy = zip(*rec)
+#     min_x = min(xx)
+#     min_y = min(yy)
+#     max_x = max(xx)
+#     max_y = max(yy)
+
+#     lat_steps = np.linspace(min_x, max_x, 3)
+
+#     for grid in grids:
+#         _points = grid["features"][0]["geometry"]["coordinates"][0][:-1]
+#         xx, yy = zip(*_points)
+#         centroid = (sum(xx) / len(_points), sum(yy) / len(_points))
+#         temp = assign_prob(centroid, centers)
+#         grid["prob"] = sum(temp)
+#     return grids
 
 def all_grid(grid, centers):
     """
     Assign prob to all the grid
     """
     for _grid in grid:
-        _grid["prob_dist"] = assign_prob(_grid, centers)
-        color = plt.cm.Greens(_grid["prob_dist"])
+        _grid["prob"] = assign_prob(_grid, centers)
+        color = plt.cm.Greens(_grid["prob"])
         color = mpl.colors.to_hex(color)
         _grid["color"] = color
     return grid
@@ -132,7 +152,6 @@ def check_range_circle(distance, radius):
         prob = -1
     return prob
 
-
 def plot_circles(circle, all_three=False):
     """
     Plotting all the three circles
@@ -148,7 +167,7 @@ def plot_circles(circle, all_three=False):
     """
     import folium
 
-    points, points1, points2 = [], [], []
+    points, points1, points2 = [], [] ,[]
 
     x, y = circle["center"]
     points.extend(PointsInCircum(x, y, circle['radius']*0.0015, n=100))
@@ -169,13 +188,6 @@ def check_range_rectangle(lat, lat_steps):
         if renge[0] < lat and lat > renge[1]:
             return i
     return None
-
-
-# def cal_dist(x1, y1, x2, y2):
-#     """
-#     Calculate the distance between the two points
-#     """
-#     return math.hypot(x2-x1, y2-y1)
 
 def cal_dist(x1, y1, x2, y2):
     """

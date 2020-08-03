@@ -37,7 +37,7 @@ def image():
 
 
 @app.post("/rect")
-def grid(item: dict):
+def rect(item: dict):
     """
     POST REQUEST:
     =============
@@ -80,8 +80,123 @@ def grid(item: dict):
         bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
         return bbox
 
+@app.post("/grid")
+def grid(item: dict):
+    """
+    TEST Query/n: 
+    {
+        "line": [
+            [10.171054833, 75.870382],
+            [16.171054833, 76.870382], 100
+        ],
+    "circles": [{"center": [10.171054833622044, 75.87038261100483],
+    "radius": 5.251052195950642,
+    "strip": [0.5,0.2,0.1],
+    "trust": 75},
+    {"center": [10.337583, 75.420917],
+    "radius":  10.530432089900206,
+    "strip": [0.5,0.2,0.1],
+    "trust": 57},
+        {"center": [10.420933, 75.872667],
+    "radius":   4.686149805543993,
+    "strip": [0.5,0.2,0.1],
+    "trust": 25}]
+        }
+    """
+    N = 30
+    TILE = 'Stamen Terrain'
+    DEGREE = 90
+    line_grid = []
+    all_points = []
+    line = item["line"]
+    circles = item["circles"]
+    m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles=TILE)
+    all_points = []
+    for circle in circles:
+        circle["rad_strips"] = []
+        points, points1, points2 = [], [], []
+
+        x, y = circle["center"]
+
+        points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
+        circle["rad_strips"].append(distance_(points[0], circle["center"]))
+        points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
+        circle["rad_strips"].append(distance_(points1[0], circle["center"]))
+        points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
+        circle["rad_strips"].append(distance_(points2[0], circle["center"]))
+
+        all_points.extend(points)
+        all_points.extend(points1)
+        all_points.extend(points2)
+
+    #     folium.PolyLine(points, color="green", popup=points[0]).add_to(m)
+    #     folium.PolyLine(points1, color="red", popup=points1[0]).add_to(m)
+    #     folium.PolyLine(points2, color="blue", popup=points2[0]).add_to(m)
+        
+    line_grid = []
+    (lat1, lon1), (lat2, lon2), width = line
+    strip = [0.5, 0.3, 0.2][::-1]
+    for i in range(1, 4)[::-1]:
+        DEGREE = 90
+        rectangle = [
+            displace(lat1, lon1, DEGREE, width*i)[::-1],
+            displace(lat1, lon1, -DEGREE, width*i)[::-1],
+            displace(lat2, lon2, -DEGREE, width*i)[::-1],
+            displace(lat2, lon2, DEGREE, width*i)[::-1]
+        ]
+        rectangle+= [rectangle[0]]
+        coordinates = rectangle
+        geo_json = {"type": "FeatureCollection",
+                    "properties": {
+                        "lower_left": rectangle[0],
+                        "upper_right": rectangle[2]
+                    },
+                    "features": []}
+
+        grid_feature = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [coordinates],
+            }
+        }
+        geo_json["features"].append(grid_feature)
+        geo_json["prob"] = strip[3-i]
+        color = plt.cm.Greens(geo_json["prob"])
+        color = mpl.colors.to_hex(color)
+        geo_json["color"] = color
+        line_grid.append(geo_json)
+        all_points.extend([rec[::-1] for rec in rectangle])
+    #     folium.PolyLine([rec[::-1] for rec in rectangle]).add_to(m)
+
+    DEGREE = 90
+    rectangle = [
+        displace(lat1, lon1, DEGREE, width),
+        displace(lat1, lon1, -DEGREE, width),
+        displace(lat2, lon2, -DEGREE, width),
+        displace(lat2, lon2, DEGREE, width)
+    ]
+    rectangle+= [rectangle[0]]
+
+    all_points.extend(rectangle)
+    xx, yy = zip(*all_points)
+    min_x = min(xx)
+    min_y = min(yy)
+    max_x = max(xx)
+    max_y = max(yy)
+    bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
+    bbox += [bbox[0]]
+
+    lower_left, upper_right = bbox[0], bbox[2]
+    grid = get_geojson_grid(upper_right, lower_left, n=N)
+    new_grid = all_grid(grid, circles)
+
+    new_grid += line_grid
+    return new_grid
+
+
 @app.post("/grid/plot")
-def grid_plot(points: list):
+def grid_plot(item: dict):
     """
     POST REQUEST:
     =============
@@ -93,15 +208,83 @@ def grid_plot(points: list):
 
         
     """
-    # parsing the list of dicts
-    # circles = ast.literal_eval(points)
-    circles = points
-    points = []
-    for center in circles:
-        x, y = center["center"]
-        points.extend(PointsInCircum(x, y, 1.5, n=20))
+    N = 30
+    TILE = 'Stamen Terrain'
+    DEGREE = 90
+    line_grid = []
+    all_points = []
+    line = item["line"]
+    circles = item["circles"]
+    m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles=TILE)
+    all_points = []
+    for circle in circles:
+        circle["rad_strips"] = []
+        points, points1, points2 = [], [], []
 
-    xx, yy = zip(*points)
+        x, y = circle["center"]
+
+        points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
+        circle["rad_strips"].append(distance_(points[0], circle["center"]))
+        points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
+        circle["rad_strips"].append(distance_(points1[0], circle["center"]))
+        points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
+        circle["rad_strips"].append(distance_(points2[0], circle["center"]))
+
+        all_points.extend(points)
+        all_points.extend(points1)
+        all_points.extend(points2)
+
+    #     folium.PolyLine(points, color="green", popup=points[0]).add_to(m)
+    #     folium.PolyLine(points1, color="red", popup=points1[0]).add_to(m)
+    #     folium.PolyLine(points2, color="blue", popup=points2[0]).add_to(m)
+        
+    line_grid = []
+    (lat1, lon1), (lat2, lon2), width = line
+    strip = [0.5, 0.3, 0.2][::-1]
+    for i in range(1, 4)[::-1]:
+        DEGREE = 90
+        rectangle = [
+            displace(lat1, lon1, DEGREE, width*i)[::-1],
+            displace(lat1, lon1, -DEGREE, width*i)[::-1],
+            displace(lat2, lon2, -DEGREE, width*i)[::-1],
+            displace(lat2, lon2, DEGREE, width*i)[::-1]
+        ]
+        rectangle+= [rectangle[0]]
+        coordinates = rectangle
+        geo_json = {"type": "FeatureCollection",
+                    "properties": {
+                        "lower_left": rectangle[0],
+                        "upper_right": rectangle[2]
+                    },
+                    "features": []}
+
+        grid_feature = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [coordinates],
+            }
+        }
+        geo_json["features"].append(grid_feature)
+        geo_json["prob"] = strip[3-i]
+        color = plt.cm.Greens(geo_json["prob"])
+        color = mpl.colors.to_hex(color)
+        geo_json["color"] = color
+        line_grid.append(geo_json)
+        all_points.extend([rec[::-1] for rec in rectangle])
+    #     folium.PolyLine([rec[::-1] for rec in rectangle]).add_to(m)
+
+    DEGREE = 90
+    rectangle = [
+        displace(lat1, lon1, DEGREE, width),
+        displace(lat1, lon1, -DEGREE, width),
+        displace(lat2, lon2, -DEGREE, width),
+        displace(lat2, lon2, DEGREE, width)
+    ]
+    rectangle+= [rectangle[0]]
+
+    all_points.extend(rectangle)
+    xx, yy = zip(*all_points)
     min_x = min(xx)
     min_y = min(yy)
     max_x = max(xx)
@@ -109,31 +292,36 @@ def grid_plot(points: list):
     bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
     bbox += [bbox[0]]
 
-
-    lower_left = bbox[0]
-    upper_right = bbox[2]
-    grid = get_geojson_grid(upper_right, lower_left, n=10)
+    lower_left, upper_right = bbox[0], bbox[2]
+    grid = get_geojson_grid(upper_right, lower_left, n=N)
     new_grid = all_grid(grid, circles)
 
-    m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles="CartoDB dark_matter")
+    folium.PolyLine(bbox).add_to(m)
 
     for i, geo_json in enumerate(new_grid):
-        color = geo_json["color"]
-
+        geo_json["color"] = color
         gj = folium.GeoJson(geo_json,
-                            style_function=lambda feature, color=color: {
+                            style_function=lambda feature: {
+                                'color': color,
                                 'fillColor': color,
-                                'color': "black",
-                                'weight': 2,
-                                'dashArray': '5, 5',
-                                'fillOpacity': 0.55,
+    #                             'fillOpacity': 0.55,
                             })
-        popup = folium.Popup(f"{geo_json['prob_dist']}-{color}")
+        popup = folium.Tooltip(f"{geo_json['prob']}")
+        gj.add_child(popup)
+        m.add_child(gj)
+    for i, geo_json in enumerate(line_grid):
+        geo_json["color"] = color
+        gj = folium.GeoJson(geo_json,
+                            style_function=lambda feature: {
+                                'color': color,
+                                'fillColor': color,
+    #                             'fillOpacity':0.3,
+                            })
+        popup = folium.Tooltip(f"{geo_json['prob']}")
         gj.add_child(popup)
         m.add_child(gj)
 
     m.save("test.html")
-
     return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
 
 
@@ -167,10 +355,10 @@ def rect_from_line(item: dict):
         width *= 5
         DEGREE = 90
         rectangle = [
-                displace(lat1, lon1, DEGREE, width*1.25),
-                displace(lat2, lon2, DEGREE, width),
-                displace(lat1, lon1, -DEGREE, width*1.25),
-                displace(lat2, lon2, -DEGREE, width)
+                displace(lat1, lon1, DEGREE, width),
+                displace(lat1, lon1, -DEGREE, width),
+                displace(lat2, lon2, -DEGREE, width),
+                displace(lat2, lon2, DEGREE, width)
         ]
     if circles is not None: # draw the circles
         all_points = []
@@ -343,8 +531,8 @@ def rect_from_circle(item: dict):
         lower_left, upper_right = bbox[0], bbox[2]
         grid = get_geojson_grid(upper_right, lower_left, n=10)
         for _grid in grid:
-            _grid["prob_dist"] = random.random()
-            color = plt.cm.Greens(_grid["prob_dist"])
+            _grid["prob"] = random.random()
+            color = plt.cm.Greens(_grid["prob"])
             color = mpl.colors.to_hex(color)
             _grid["color"] = color
 
@@ -380,11 +568,11 @@ def rect_from_circle_plot(item: dict):
             x, y = circle["center"]
 
             points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
-            circle["rad_strips"].append(cal_dist(*points[0], *circle["center"]))
+            circle["rad_strips"].append(distance_(points[0], circle["center"]))
             points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
-            circle["rad_strips"].append(cal_dist(*points1[0], *circle["center"]))
+            circle["rad_strips"].append(distance_(points1[0], circle["center"]))
             points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
-            circle["rad_strips"].append(cal_dist(*points2[0], *circle["center"]))
+            circle["rad_strips"].append(distance_(points2[0], circle["center"]))
 
             all_points.extend(points)
             all_points.extend(points1)
@@ -417,7 +605,7 @@ def rect_from_circle_plot(item: dict):
                                     'dashArray': '5, 5',
                                     'fillOpacity': 0.55,
                                 })
-            popup = folium.Tooltip(f"{geo_json['prob_dist']}")
+            popup = folium.Tooltip(f"{geo_json['prob']}")
             gj.add_child(popup)
             m.add_child(gj)
 
