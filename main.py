@@ -218,8 +218,6 @@ def grid_plot(item: dict):
         "strip": [0.5,0.2,0.1],
         "trust": 25}]
             }
-        
-    """
     from selenium import webdriver
     options = webdriver.ChromeOptions()
     options.binary_location = "/app/.apt/usr/bin/google-chrome-stable"
@@ -227,6 +225,8 @@ def grid_plot(item: dict):
     driver = webdriver.Chrome(chrome_options=options)
     driver.quit()
     print("DRIVER WAS OPENEND")
+        
+    """
     N = 30
     TILE = 'Stamen Terrain'
     DEGREE = 90
