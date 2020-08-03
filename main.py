@@ -1,3 +1,4 @@
+import json
 import folium
 import random
 import numpy as np
@@ -15,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 
 N = 10
-SATELITE = glob("satelite/*")
+SATELITE = glob("satelite/*.JPG")
 DEGREE = 90
 TILE = 'Stamen Terrain'
 FILENAME = "html/file.html"
@@ -36,9 +37,7 @@ app.mount("/satelite", StaticFiles(directory="satelite"), name="satelite")
 def home():
     return "Main Page"
 
-
-@app.post("/model")
-def model(item: dict):
+def model(geojson: list):
     """
     Retrive information from the image processing api
 
@@ -52,23 +51,23 @@ def model(item: dict):
         }
 
     """
+    response = []
     filename = random.choice(SATELITE)
-    prob = 0
-    if "HIGH" in filename:
-        prob = 1
-    response = {
-        "query": item,
-        "response": {
-            "prob": prob,
-            "image": FileResponse(filename, media_type='application/octet-stream', filename=filename)
+    grid = random.sample(geojson, len(filename))
+    for _grid in grid:
+        response.append({
+                "lats": _grid["features"][0]["geometry"]["coordinates"][0][0][::-1],
+                "prob": random.random(),
+                "radius": random.random(),
+                "image": random.choice(SATELITE)
+        })
 
-        }
-    }
-    return response
+    with open("satelite/response.json", "w") as file:
+        json.dump(response, file)
 
 
 @app.post("/models")
-def models(item: dict):
+def models():
     """
     Retrive information from the image processing api
 
@@ -82,15 +81,9 @@ def models(item: dict):
         }
 
     """
-    response = {"query": item, "response": []}
-    for filename in SATELITE:
-        prob = 0
-        if "HIGH" in filename:
-            prob = 1
-        response["response"].append({
-            "prob": prob,
-            "image": FileResponse(filename, media_type='application/octet-stream', filename=filename)})
-    return response
+    with open("satelite/response.json", "r") as file:
+        response = json.load(file)
+        return response
 
 
 @app.post("/rect")
@@ -443,6 +436,7 @@ def grid(item: dict):
         new_grid = all_grid(grid, circles)
 
         new_grid += line_grid
+        model(new_grid)
         return new_grid
     else:
         return "What THe Fuck are You Doing"
