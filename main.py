@@ -57,7 +57,7 @@ def rect(item: dict):
             x, y = circle["center"]
 
         #     points2.extend(PointsInCircum(x, y, circle['radius']*3*0.0015, n=100))
-            points.extend(PointsInCircum(x, y, circle['radius']*1*0.0111112, n=100)) #6,092 km
+            points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
             points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
             points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
         #     points.extend(getCoordinates(x, y, circle['radius']*1, n=100)) #6,092 km
@@ -134,7 +134,7 @@ def grid(item: dict):
         line_grid = []
         (lat1, lon1), (lat2, lon2), width = line
         m = folium.Map(zoom_start=5, location=line[0],  tiles=TILE)
-        strip = [0.5, 0.3, 0.2][::-1]
+        strip = [0.52, 0.223, 0.017][::-1]
         for i in range(1, 4)[::-1]:
             DEGREE = 90
             rectangle = [
@@ -234,115 +234,105 @@ def grid_plot(item: dict):
     all_points = []
     line = item["line"]
     circles = item["circles"]
-    m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles=TILE)
     all_points = []
-    for circle in circles:
-        circle["rad_strips"] = []
-        points, points1, points2 = [], [], []
+    if circles:
+        m = folium.Map(zoom_start=5, location=circles[0]["center"],  tiles=TILE)
+        for circle in circles:
+            circle["rad_strips"] = []
+            points, points1, points2 = [], [], []
 
-        x, y = circle["center"]
+            x, y = circle["center"]
 
-        points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
-        circle["rad_strips"].append(distance_(points[0], circle["center"]))
-        points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
-        circle["rad_strips"].append(distance_(points1[0], circle["center"]))
-        points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
-        circle["rad_strips"].append(distance_(points2[0], circle["center"]))
+            points.extend(PointsInCircum(x, y, circle['radius']*1*0.02, n=100)) #6,092 km
+            circle["rad_strips"].append(distance_(points[0], circle["center"]))
+            points1.extend(PointsInCircum(x, y, circle['radius']*2*0.02, n=100))
+            circle["rad_strips"].append(distance_(points1[0], circle["center"]))
+            points2.extend(PointsInCircum(x, y, circle['radius']*3*0.02, n=100))
+            circle["rad_strips"].append(distance_(points2[0], circle["center"]))
 
-        all_points.extend(points)
-        all_points.extend(points1)
-        all_points.extend(points2)
+            all_points.extend(points)
+            all_points.extend(points1)
+            all_points.extend(points2)
 
-    #     folium.PolyLine(points, color="green", popup=points[0]).add_to(m)
-    #     folium.PolyLine(points1, color="red", popup=points1[0]).add_to(m)
-    #     folium.PolyLine(points2, color="blue", popup=points2[0]).add_to(m)
-        
-    line_grid = []
-    (lat1, lon1), (lat2, lon2), width = line
-    strip = [0.5, 0.3, 0.2][::-1]
-    for i in range(1, 4)[::-1]:
+    if line:
+        line_grid = []
+        (lat1, lon1), (lat2, lon2), width = line
+        m = folium.Map(zoom_start=5, location=line[0],  tiles=TILE)
+        strip = [0.52, 0.223, 0.017][::-1]
+        for i in range(1, 4)[::-1]:
+            DEGREE = 90
+            rectangle = [
+                displace(lat1, lon1, DEGREE, width*i)[::-1],
+                displace(lat1, lon1, -DEGREE, width*i)[::-1],
+                displace(lat2, lon2, -DEGREE, width*i)[::-1],
+                displace(lat2, lon2, DEGREE, width*i)[::-1]
+            ]
+            rectangle+= [rectangle[0]]
+            coordinates = rectangle
+            geo_json = {"type": "FeatureCollection",
+                        "properties": {
+                            "lower_left": rectangle[0],
+                            "upper_right": rectangle[2]
+                        },
+                        "features": []}
+
+            grid_feature = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [coordinates],
+                }
+            }
+            geo_json["features"].append(grid_feature)
+            geo_json["prob"] = strip[3-i]
+            color = plt.cm.Greens(geo_json["prob"])
+            color = mpl.colors.to_hex(color)
+            geo_json["color"] = color
+            line_grid.append(geo_json)
+            all_points.extend([rec[::-1] for rec in rectangle])
+        #     folium.PolyLine([rec[::-1] for rec in rectangle]).add_to(m)
+
         DEGREE = 90
         rectangle = [
-            displace(lat1, lon1, DEGREE, width*i)[::-1],
-            displace(lat1, lon1, -DEGREE, width*i)[::-1],
-            displace(lat2, lon2, -DEGREE, width*i)[::-1],
-            displace(lat2, lon2, DEGREE, width*i)[::-1]
+            displace(lat1, lon1, DEGREE, width),
+            displace(lat1, lon1, -DEGREE, width),
+            displace(lat2, lon2, -DEGREE, width),
+            displace(lat2, lon2, DEGREE, width)
         ]
         rectangle+= [rectangle[0]]
-        coordinates = rectangle
-        geo_json = {"type": "FeatureCollection",
-                    "properties": {
-                        "lower_left": rectangle[0],
-                        "upper_right": rectangle[2]
-                    },
-                    "features": []}
+        all_points.extend(rectangle)
 
-        grid_feature = {
-            "type": "Feature",
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [coordinates],
-            }
-        }
-        geo_json["features"].append(grid_feature)
-        geo_json["prob"] = strip[3-i]
-        color = plt.cm.Greens(geo_json["prob"])
-        color = mpl.colors.to_hex(color)
-        geo_json["color"] = color
-        line_grid.append(geo_json)
-        all_points.extend([rec[::-1] for rec in rectangle])
-    #     folium.PolyLine([rec[::-1] for rec in rectangle]).add_to(m)
+    if all_points:   
+        xx, yy = zip(*all_points)
+        min_x = min(xx)
+        min_y = min(yy)
+        max_x = max(xx)
+        max_y = max(yy)
+        bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
+        bbox += [bbox[0]]
 
-    DEGREE = 90
-    rectangle = [
-        displace(lat1, lon1, DEGREE, width),
-        displace(lat1, lon1, -DEGREE, width),
-        displace(lat2, lon2, -DEGREE, width),
-        displace(lat2, lon2, DEGREE, width)
-    ]
-    rectangle+= [rectangle[0]]
+        lower_left, upper_right = bbox[0], bbox[2]
+        grid = get_geojson_grid(upper_right, lower_left, n=N)
+        new_grid = all_grid(grid, circles)
+        new_grid += line_grid
+        folium.PolyLine(bbox).add_to(m)
 
-    all_points.extend(rectangle)
-    xx, yy = zip(*all_points)
-    min_x = min(xx)
-    min_y = min(yy)
-    max_x = max(xx)
-    max_y = max(yy)
-    bbox = [(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)]
-    bbox += [bbox[0]]
+        for i, geo_json in enumerate(new_grid):
+            color = geo_json["color"]
+            gj = folium.GeoJson(geo_json,
+                                style_function=lambda feature: {
+                                    'color': color,
+                                    'fillColor': color,
+        #                             'fillOpacity':0.3,
+                                })
+            popup = folium.Tooltip(f"{geo_json['prob']}")
+            gj.add_child(popup)
+            m.add_child(gj)
 
-    lower_left, upper_right = bbox[0], bbox[2]
-    grid = get_geojson_grid(upper_right, lower_left, n=N)
-    new_grid = all_grid(grid, circles)
+        m.save("test.html")
+        return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
 
-    folium.PolyLine(bbox).add_to(m)
-
-    for i, geo_json in enumerate(new_grid):
-        geo_json["color"] = color
-        gj = folium.GeoJson(geo_json,
-                            style_function=lambda feature: {
-                                'color': color,
-                                'fillColor': color,
-    #                             'fillOpacity': 0.55,
-                            })
-        popup = folium.Tooltip(f"{geo_json['prob']}")
-        gj.add_child(popup)
-        m.add_child(gj)
-    for i, geo_json in enumerate(line_grid):
-        geo_json["color"] = color
-        gj = folium.GeoJson(geo_json,
-                            style_function=lambda feature: {
-                                'color': color,
-                                'fillColor': color,
-    #                             'fillOpacity':0.3,
-                            })
-        popup = folium.Tooltip(f"{geo_json['prob']}")
-        gj.add_child(popup)
-        m.add_child(gj)
-
-    m.save("test.html")
-    return FileResponse("test.html", media_type='application/octet-stream', filename="test.html")
-
+    return None
 
 @app.post("/line/")
 def rect_from_line(item: dict):
