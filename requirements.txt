@@ -1,0 +1,22 @@
+astroid
+Click
+colorama
+gunicorn
+h11
+isort
+lazy
+mccabe
+pydantic
+pylint
+six
+starlette
+uvicorn
+websockets
+wrapt
+aiofiles
+# fastapi[all]
+fastapi
+numpy
+matplotlib
+folium
+selenium
