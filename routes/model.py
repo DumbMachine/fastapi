@@ -25,11 +25,11 @@ from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, Date
 
 # Global Variables
-SQLITE = 'sqlite'
+SQLITE = "sqlite"
 
 # Table Names
-USERS = 'users'
-EVENTS = 'events'
+USERS = "users"
+EVENTS = "events"
 
 
 def get_db():
@@ -41,9 +41,10 @@ def get_db():
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+
 class AppDatabase:
-    """Master Database for Event and User management for the assigment
-    """
+    """Master Database for Event and User management for the assigment"""
+
     DB_ENGINE = {
         SQLITE: "sqlite:///" + os.path.join(basedir, "app.db"),
     }
@@ -51,7 +52,7 @@ class AppDatabase:
     # Main DB Connection Ref Obj
     db_engine = None
 
-    def __init__(self, dbtype, username='', password='', dbname=''):
+    def __init__(self, dbtype, username="", password="", dbname=""):
         dbtype = dbtype.lower()
 
         if dbtype in self.DB_ENGINE.keys():
@@ -64,39 +65,41 @@ class AppDatabase:
             print("DBType is not found in DB_ENGINE")
 
     def commit(self):
-        """Simpler interface for commiting the database, not really the best practise
-        """
+        """Simpler interface for commiting the database, not really the best practise"""
         with self.db_engine.connect() as connection:
             connection.connection.commit()
 
     def rollback(self):
-        """Simpler interface for commiting the database, not really the best practise
-        """
+        """Simpler interface for commiting the database, not really the best practise"""
         with self.db_engine.connect() as connection:
             connection.connection.rollback()
 
     def create_db_tables(self):
         metadata = MetaData()
 
-        self.events = Table(EVENTS, metadata,
-                            Column('id', Integer, primary_key=True),
-                            Column('title', String),
-                            Column('description', String),
-                            Column('image', String),
-                            Column('eventDate', Date),
-                            Column('location', String),
-                            Column('allowedAttendees', Integer),
-                            Column('waitlist', Integer),
-                            Column('startTime', String),
-                            Column('endTime', String)
-                            )
+        self.events = Table(
+            EVENTS,
+            metadata,
+            Column("id", Integer, primary_key=True),
+            Column("title", String),
+            Column("description", String),
+            Column("image", String),
+            Column("eventDate", Date),
+            Column("location", String),
+            Column("allowedAttendees", Integer),
+            Column("waitlist", Integer),
+            Column("startTime", String),
+            Column("endTime", String),
+        )
 
-        self.users = Table(USERS, metadata,
-                           Column('id', Integer, primary_key=True),
-                           Column('eid', String, ForeignKey('events.id')),
-                           Column('name', String),
-                           Column('email', String)
-                           )
+        self.users = Table(
+            USERS,
+            metadata,
+            Column("id", Integer, primary_key=True),
+            Column("eid", String, ForeignKey("events.id")),
+            Column("name", String),
+            Column("email", String),
+        )
 
         try:
             metadata.create_all(self.db_engine)
@@ -105,8 +108,8 @@ class AppDatabase:
             print("Error occurred during Table creation!")
             print(e)
 
-    def print_all_data(self, table='', query=''):
-        query = query if query != '' else "SELECT * FROM '{}';".format(table)
+    def print_all_data(self, table="", query=""):
+        query = query if query != "" else "SELECT * FROM '{}';".format(table)
         print(query)
 
         with self.db_engine.connect() as connection:
@@ -124,10 +127,10 @@ class AppDatabase:
     def insert_event(self, data, table=EVENTS):
 
         with self.db_engine.connect() as connection:
-            query = f'''INSERT INTO events(
+            query = f"""INSERT INTO events(
                 id, title, description, eventDate, location,
                 allowedAttendees, waitlist, startTime, endTime, image
-                ) VALUES {tuple([i for i in list(data.values())])};'''
+                ) VALUES {tuple([i for i in list(data.values())])};"""
 
             result = connection.execute(query)
 
@@ -135,18 +138,18 @@ class AppDatabase:
 
         with self.db_engine.connect() as connection:
             try:
-                query = f'''SELECT * FROM events WHERE id={eid}'''
+                query = f"""SELECT * FROM events WHERE id={eid}"""
                 result = connection.execute(query)
                 return [row for row in result][0]
             except Exception as e:
                 print(e)
                 return "Event Not Found"
 
-    def get_event_all(self,table=EVENTS):
+    def get_event_all(self, table=EVENTS):
 
         with self.db_engine.connect() as connection:
             try:
-                query = f'''SELECT * FROM events'''
+                query = f"""SELECT * FROM events"""
                 result = connection.execute(query)
                 return [row for row in result]
             except Exception as e:
@@ -157,7 +160,7 @@ class AppDatabase:
 
         with self.db_engine.connect() as connection:
             try:
-                query = f'''SELECT * FROM users'''
+                query = f"""SELECT * FROM users"""
                 result = connection.execute(query)
                 return [row for row in result]
             except Exception as e:
@@ -171,21 +174,28 @@ class AppDatabase:
                 event = self.get_event(eid)
                 if event == "Event Not Found":
                     raise
-                query = f'''DELETE FROM events WHERE id={eid}'''
+                query = f"""DELETE FROM events WHERE id={eid}"""
                 result = connection.execute(query)
                 connection.connection.commit()
                 return eid
             except Exception as e:
                 print(e)
-                return ("Event Not Found")
-
+                return "Event Not Found"
 
     def insert_user(self, data, table=EVENTS):
 
         with self.db_engine.connect() as connection:
-            query = f'''INSERT INTO users(
+            query = f"""INSERT INTO users(
                 id, name, email
-                ) VALUES {tuple([i for i in list(data.values())])};'''
+                ) VALUES {tuple([i for i in list(data.values())])};"""
+            result = connection.execute(query)
+
+            connection.connection.commit()
+
+    def attend_event(self, userid, eventid):
+
+        with self.db_engine.connect() as connection:
+            query = f"""UPDATE users SET eid={eventid} WHERE id={userid};"""
             result = connection.execute(query)
 
             connection.connection.commit()
@@ -194,7 +204,7 @@ class AppDatabase:
 
         with self.db_engine.connect() as connection:
             try:
-                query = f'''SELECT * FROM users WHERE id={uid}'''
+                query = f"""SELECT * FROM users WHERE id={uid}"""
                 result = connection.execute(query)
                 return [row for row in result][0]
             except Exception as e:
@@ -208,14 +218,13 @@ class AppDatabase:
                 user = self.get_user(eid)
                 if user == "User Not Found":
                     raise
-                query = f'''DELETE FROM users WHERE id={eid}'''
+                query = f"""DELETE FROM users WHERE id={eid}"""
                 result = connection.execute(query)
                 connection.connection.commit()
                 return eid
             except Exception as e:
                 print(e)
-                return ("User Not Found")
-
+                return "User Not Found"
 
     # # Examples
 

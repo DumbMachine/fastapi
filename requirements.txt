@@ -16,7 +16,4 @@ wrapt
 aiofiles
 # fastapi[all]
 fastapi
-numpy
-matplotlib
-folium
-selenium
+python-multipart
