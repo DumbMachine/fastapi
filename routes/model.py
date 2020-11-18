@@ -188,7 +188,8 @@ class AppDatabase:
         with self.db_engine.connect() as connection:
             query = f"""INSERT INTO users(
                 id, name, email
-                ) VALUES {tuple([i for i in list(data.values())])};"""
+                ) VALUES {(data['id'], data['name'], data['email'])};"""
+                # ) VALUES {tuple([i for i in list(data.values())])};
             result = connection.execute(query)
 
             connection.connection.commit()
