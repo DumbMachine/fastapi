@@ -14,8 +14,8 @@ uvicorn
 websockets
 wrapt
 aiofiles
-# fastapi[all]
-fastapi
+fastapi[all]
+# fastapi
 python-multipart
 uvloop
 httptools
