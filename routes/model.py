@@ -130,7 +130,8 @@ class AppDatabase:
             query = f"""INSERT INTO events(
                 id, title, description, eventDate, location,
                 allowedAttendees, waitlist, startTime, endTime, image
-                ) VALUES {tuple([i for i in list(data.values())])};"""
+                ) VALUES {(data['id'], data['title'], data['description'], data['eventDate'], data['location'], data['allowedAttendees'], data['waitlist'], data['startTime'], data['endTime'], data['image'])};"""
+            # ) VALUES {tuple([i for i in list(data.values())])};
 
             result = connection.execute(query)
 
