@@ -9,7 +9,7 @@ mccabe
 pydantic
 pylint
 six
-starlette=0.13.6
+starlette==0.13.6
 uvicorn
 websockets
 wrapt
