@@ -41,8 +41,9 @@ def create_user_api(
 
     try:
         database.insert_user(data=form)
+        return "200", "User Registry Made"
     except Exception as e:
-        print(e)
+        return {"status": "400", "Error": f"{str(e)}"}
 
 
 @router.get("/user/{eid}")
@@ -58,11 +59,16 @@ def update_user_api(eid: int):
     raise NotImplementedError
 
 
+@router.get("/delete_user", response_class=HTMLResponse)
+def dalete_user(request: Request):
+    """Create an user using Form"""
+    return templates.TemplateResponse("userDeleteForm.html", {"request": request})
+
+
 @router.post("/user/delete")
 def delete_event_api(id: str = Form(...)):
     """Return a table showing the details from this user"""
-    print(id)
-    user = database.remove_event(id)
-    if user == -1:
-        return user
+    user = database.remove_user(id)
+    if user == "User Not Found":
+        return user, "Deletion Unsuccessful"
     return user, "Deletion Successful"

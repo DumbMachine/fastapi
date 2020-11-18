@@ -55,8 +55,9 @@ def home(request: Request):
         # User Related Api
         ["create_user", "Create User"],
         ["delete_user", "Delete User"],
+        # Attendence Api
         ["attend", "Attend Event(for a logged user)"],
-        ["attendance", "Get Attendees of an event"],
+        # ["attendance", "Get Attendees of an event"],
     ]
     return templates.TemplateResponse(
         "main.html", {"request": request, "actions": supported_actions}

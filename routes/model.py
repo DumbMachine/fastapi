@@ -217,7 +217,7 @@ class AppDatabase:
             try:
                 user = self.get_user(eid)
                 if user == "User Not Found":
-                    raise
+                    raise Exception
                 query = f"""DELETE FROM users WHERE id={eid}"""
                 result = connection.execute(query)
                 connection.connection.commit()

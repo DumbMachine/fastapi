@@ -51,19 +51,24 @@ def create_event_api(
     image = form.pop("image")
     print(form)
 
-    path = os.path.join(Config.IMAGES_FOLDER, image.filename)
+    if image.filename:
+        path = Config.IMAGES_FOLDER + "/" +image.filename
+        # path = os.path.join(Config.IMAGES_FOLDER, image.filename)
 
-    with open(path, "wb") as f:
-        f.write(image.file.read())
+        with open(path, "wb") as f:
+            f.write(image.file.read())
 
-    form["image"] = path
+        form["image"] = path
 
-    try:
-        database.insert_event(data=form)
-    except Exception as e:
-        print(e)
-        # add code to remove the uploaded file
-        # if the insert to database fails
+        try:
+            database.insert_event(data=form)
+            return "200", "Event Registry Made"
+        except Exception as e:
+            return {"status": "400", "Error" :f"{str(e)}"}
+            # add code to remove the uploaded file
+            # if the insert to database fails
+
+    return "400", f"Error as image was not uploaded"
 
 
 @router.get("/event/{eid}")
@@ -78,7 +83,7 @@ def delete_event_api(id: str = Form(...)):
     """Return a table showing the details from this event"""
     print(id)
     event = database.remove_event(id)
-    if event == -1:
+    if event == "Event Not Found":
         return event
     return event, "Deletion Successful"
 
@@ -96,11 +101,12 @@ def list_event_upcoming(request: Request):
         for event in events
         if datetime.strptime(event.eventDate, "%Y-%m-%d") > datetime.now()
     ]
-
-    return templates.TemplateResponse(
-        "eventsListing.html",
-        {"request": request, "eventsType": "upcoming", "events": events},
-    )
+    if len(events):
+        return templates.TemplateResponse(
+            "eventsListing.html",
+            {"request": request, "eventsType": "upcoming", "events": events},
+        )
+    return "Event Not Found"
 
 
 @router.get("/list_event_all", response_class=HTMLResponse)
@@ -113,7 +119,9 @@ def list_event_all(request: Request):
         events, key=lambda event: datetime.strptime(event.eventDate, "%Y-%m-%d")
     )
 
-    return templates.TemplateResponse(
-        "eventsListing.html",
-        {"request": request, "eventsType": "all", "events": events},
-    )
+    if len(events):
+        return templates.TemplateResponse(
+            "eventsListing.html",
+            {"request": request, "eventsType": "all", "events": events},
+        )
+    return "Event Not Found"

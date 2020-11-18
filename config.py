@@ -10,4 +10,5 @@ class Config(object):
         "DATABASE_URL"
     ) or "sqlite:///" + os.path.join(basedir, "app.db")
     UPLOAD_FOLDER = os.path.join(basedir, "data")
-    IMAGES_FOLDER = os.path.join(basedir, "images")
+    IMAGES_FOLDER = "images"
+    # IMAGES_FOLDER = os.path.join(basedir, "images")

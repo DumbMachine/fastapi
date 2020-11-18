@@ -39,6 +39,12 @@ def create_attend_api(request: Request, id: str = Form(...), eventid: str = Form
         if event == "Event Not Found":
             return "404", "Attendance not possible as the Event does not exist"
 
+        # if event is found, check whether vacancy
+        users = database.get_user_all()
+        users = [user.name for user in users if user.eid == eventid]
+        if event.allowedAttendees < len(users):
+            return "400", "This event is full"
+
         # if the user has an upcoming booking, don't allow for anymore bookings
         if (
             user.eid != None
@@ -48,7 +54,7 @@ def create_attend_api(request: Request, id: str = Form(...), eventid: str = Form
 
         database.attend_event(userid=id, eventid=eventid)
         database.commit()
-        return "300", "Even Listing was inserted"
+        return "200", "Even Listing was inserted"
 
     except exc.IntegrityError as e:
         database.rollback()
@@ -63,4 +69,3 @@ def attendance_listing(request: Request, eventid: str):
     users = database.get_user_all()
     users = [user.name for user in users if user.eid == eventid]
     return templates.TemplateResponse("eventAttendance.html", {"request": request, "eventid": eventid, "data": [len(users), users]})
-
