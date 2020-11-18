@@ -19,3 +19,4 @@ fastapi[all]
 python-multipart
 uvloop
 httptools
+sqlalchemy
