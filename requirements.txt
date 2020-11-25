@@ -14,9 +14,6 @@ uvicorn
 websockets
 wrapt
 aiofiles
-# fastapi[all]
-fastapi
+fastapi[all]
+pandas
 numpy
-matplotlib
-folium
-selenium
