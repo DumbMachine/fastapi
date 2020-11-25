@@ -9,6 +9,7 @@ mccabe
 pydantic
 pylint
 six
+httptools
 starlette==0.13.6
 uvicorn
 websockets
