@@ -18,4 +18,4 @@ uvloop
 fastapi[all]
 pandas
 numpy
-starlette
+starlette==0.13.6
