@@ -18,3 +18,4 @@ uvloop
 fastapi[all]
 pandas
 numpy
+starlette
