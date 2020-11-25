@@ -10,7 +10,7 @@ origins = ["http://localhost", "http://localhost:8080"]
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv("/home/dumbmachine/work/experiment/dietcare-frontend/fastapi/RAW_recipes.csv")
+df = pd.read_csv("smaller.csv")
 
 
 app.add_middleware(
