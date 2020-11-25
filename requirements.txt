@@ -9,7 +9,7 @@ mccabe
 pydantic
 pylint
 six
-starlette
+starlette==0.13.6
 uvicorn
 websockets
 wrapt
@@ -18,4 +18,3 @@ uvloop
 fastapi[all]
 pandas
 numpy
-starlette==0.13.6
